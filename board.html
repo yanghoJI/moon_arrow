@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>대회 공지 / 상황판</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .updated {
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .notice-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .notice {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .notice-time {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+    .notice-body {
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+    .small {
+      font-size: 12px;
+      color: #999;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>공지 / 상황판</h1>
+  <div class="updated" id="updated">불러오는 중...</div>
+  <div class="notice-list" id="notice-list">
+    <!-- JS로 공지가 추가됩니다 -->
+  </div>
+  <p class="small">※ 10초마다 자동으로 갱신됩니다.</p>
+
+  <script>
+    // 👉 여기만 "board" 탭의 CSV 주소로 바꿔주면 됨
+    const NOTICES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ/pubhtml?gid=651255673&single=true"
+
+    async function loadNotices() {
+      try {
+        const res = await fetch(NOTICES_CSV_URL + "&cachebuster=" + Date.now());
+        const text = await res.text();
+
+        const rows = text
+          .trim()
+          .split(/\r?\n/)
+          .map(line => line.split(","));
+
+        // rows[0] : 1행(빈줄)
+        // rows[1] : 2행(빈줄)
+        // rows[2] : 3행(헤더: 공지시간 / 내용 / 공개 여부)
+        const dataRows = rows.slice(3);
+
+        // [{ time, body, visible }, ...] 로 변환
+        let items = dataRows
+          .map(cols => {
+            const time   = (cols[1] ?? "").trim();  // B열: 공지시간
+            const body   = (cols[2] ?? "").trim();  // C열: 내용
+            const flag   = (cols[3] ?? "").trim();  // D열: 공개 여부
+            const visible = (flag === "1");
+            return { time, body, visible };
+          })
+          // 내용이 있고 공개 여부가 1인 것만 보여줌
+          .filter(item => item.body !== "" && item.visible);
+
+        // 최신 공지가 위로 오도록 (시트에 아래로 추가한다고 가정)
+        items = items.reverse();
+
+        const container = document.getElementById("notice-list");
+        container.innerHTML = "";
+
+        if (items.length === 0) {
+          container.innerHTML = "<div class='notice'>현재 표시할 공지가 없습니다.</div>";
+        } else {
+          items.forEach(item => {
+            const div = document.createElement("div");
+            div.className = "notice";
+            div.innerHTML = `
+              <div class="notice-time">${item.time}</div>
+              <div class="notice-body">${item.body}</div>
+            `;
+            container.appendChild(div);
+          });
+        }
+
+        const updated = document.getElementById("updated");
+        const now = new Date();
+        updated.textContent =
+          "마지막 갱신: " +
+          now.toLocaleTimeString("ko-KR", { hour12: false });
+      } catch (e) {
+        console.error(e);
+        document.getElementById("updated").textContent =
+          "불러오는 중 오류가 발생했습니다.";
+      }
+    }
+
+    loadNotices();
+    // 10초마다 자동 갱신
+    setInterval(loadNotices, 10000);
+  </script>
+</body>
+</html>

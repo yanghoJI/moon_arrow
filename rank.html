@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>대회 현재 등수</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 16px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .updated {
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+      font-size: 14px;
+    }
+    th {
+      background: #222;
+      color: #fff;
+    }
+    tr:nth-child(even) td {
+      background: #fafafa;
+    }
+    .name {
+      text-align: left;
+    }
+    .small {
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <h1>현재 등수</h1>
+  <div class="updated" id="updated">불러오는 중...</div>
+  <table>
+    <thead>
+      <tr>
+        <th>순위</th>
+        <th>이름</th>
+        <th>총합</th>
+      </tr>
+    </thead>
+    <tbody id="rank-body">
+      <!-- JS로 줄이 추가됩니다 -->
+    </tbody>
+  </table>
+  <p class="small">※ 10초마다 자동으로 갱신됩니다. 새로고침해도 됩니다.</p>
+
+  <script>
+    // 👉 여기만 네 "rank" 시트의 CSV 주소로 바꿔주면 됨
+    const RANKINGS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ/pubhtml?gid=0&single=true";
+
+    async function loadRanking() {
+      try {
+        const res = await fetch(RANKINGS_CSV_URL + "&cachebuster=" + Date.now());
+        const text = await res.text();
+
+        // CSV → 행/열로 쪼개기
+        const rows = text
+          .trim()
+          .split(/\r?\n/)
+          .map(line => line.split(","));
+
+        // rows[0] : 1행 (1순/2순 큰 제목)  → 버림
+        // rows[1] : 2행 (이름/순위/총합/1시/2시/…) → 버림
+        const dataRows = rows.slice(2);
+
+        // [ { name, total }, ... ] 로 변환
+        const items = dataRows
+          .map(cols => {
+            // A열은 비어있고, B열이 이름 / D열이 총합
+            const name  = (cols[1] ?? "").trim();      // B열
+            const total = Number((cols[3] ?? "0").trim()); // D열
+            return { name, total };
+          })
+          .filter(item => item.name !== "" && !Number.isNaN(item.total));
+
+        // 총합 기준 내림차순 정렬
+        items.sort((a, b) => b.total - a.total);
+
+        const tbody = document.getElementById("rank-body");
+        tbody.innerHTML = "";
+
+        items.forEach((item, idx) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td class="name">${item.name}</td>
+            <td>${item.total}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        const updated = document.getElementById("updated");
+        const now = new Date();
+        updated.textContent =
+          "마지막 갱신: " +
+          now.toLocaleTimeString("ko-KR", { hour12: false });
+      } catch (e) {
+        console.error(e);
+        document.getElementById("updated").textContent =
+          "불러오는 중 오류가 발생했습니다.";
+      }
+    }
+
+    loadRanking();
+    // 10초마다 자동 갱신
+    setInterval(loadRanking, 10000);
+  </script>
+</body>
+</html>
