@@ -58,6 +58,7 @@
         <th>순위</th>
         <th>이름</th>
         <th>총합</th>
+        <th>1·2·3순 합</th>
       </tr>
     </thead>
     <tbody id="rank-body">
@@ -67,64 +68,127 @@
   <p class="small">※ 10초마다 자동으로 갱신됩니다. 새로고침해도 됩니다.</p>
 
   <script>
-    // 👉 여기만 네 "rank" 시트의 CSV 주소로 바꿔주면 됨
+    // ✅ 여기만 네 rank 시트의 CSV 주소로 교체하면 됨
+    // 예: https://docs.google.com/spreadsheets/d/XXXX/export?format=csv&gid=YYYY
     const RANKINGS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ/pub?gid=0&single=true&output=csv";
 
     async function loadRanking() {
+      const updated = document.getElementById("updated");
+      const tbody = document.getElementById("rank-body");
+
       try {
-        const res = await fetch(RANKINGS_CSV_URL + "&cachebuster=" + Date.now());
+        const url =
+          RANKINGS_CSV_URL +
+          (RANKINGS_CSV_URL.includes("?") ? "&" : "?") +
+          "cachebuster=" +
+          Date.now();
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error("HTTP 상태코드: " + res.status);
+        }
+
         const text = await res.text();
 
-        // CSV → 행/열로 쪼개기
+        // HTML이 오면 (권한 문제 등) 바로 에러 처리
+        if (text.trim().startsWith("<")) {
+          throw new Error("CSV 대신 HTML 응답이 왔습니다. (공유/권한 설정 확인 필요)");
+        }
+
         const rows = text
           .trim()
           .split(/\r?\n/)
           .map(line => line.split(","));
 
-        // rows[0] : 1행 (1순/2순 큰 제목)  → 버림
-        // rows[1] : 2행 (이름/순위/총합/1시/2시/…) → 버림
+        // rows[0] : 1행(큰 제목들)
+        // rows[1] : 2행(헤더: 이름/순위/총합/1시/2시/...)
         const dataRows = rows.slice(2);
 
-        // [ { name, total }, ... ] 로 변환
         const items = dataRows
           .map(cols => {
-            // A열은 비어있고, B열이 이름 / D열이 총합
-            const name  = (cols[1] ?? "").trim();      // B열
-            const total = Number((cols[3] ?? "0").trim()); // D열
-            return { name, total };
+            const name = (cols[1] ?? "").trim();      // B열: 이름
+            if (!name) return null;
+
+            const total = Number(cols[3] ?? 0);       // D열: 총합
+
+            // 1순 시간별 (E~I → 인덱스 4~8)
+            const firstRoundShots = [
+              Number(cols[4] ?? 0),
+              Number(cols[5] ?? 0),
+              Number(cols[6] ?? 0),
+              Number(cols[7] ?? 0),
+              Number(cols[8] ?? 0),
+            ];
+
+            const firstRoundSum  = Number(cols[9]  ?? 0);  // J열: 1순 합
+            const secondRoundSum = Number(cols[15] ?? 0);  // P열: 2순 합
+            const thirdRoundSum  = Number(cols[21] ?? 0);  // V열: 3순 합
+
+            return {
+              name,
+              total,
+              firstRoundSum,
+              secondRoundSum,
+              thirdRoundSum,
+              firstRoundShots,
+            };
           })
-          .filter(item => item.name !== "" && !Number.isNaN(item.total));
+          .filter(item => item !== null);
 
-        // 총합 기준 내림차순 정렬
-        items.sort((a, b) => b.total - a.total);
+        // 🔥 순위 정렬 로직
+        items.sort((a, b) => {
+          // 1) 총합 높은 사람
+          if (b.total !== a.total) {
+            return b.total - a.total;
+          }
 
-        const tbody = document.getElementById("rank-body");
+          // 2) 1순 합, 2순 합, 3순 합 순으로 비교
+          if (b.firstRoundSum !== a.firstRoundSum) {
+            return b.firstRoundSum - a.firstRoundSum;
+          }
+          if (b.secondRoundSum !== a.secondRoundSum) {
+            return b.secondRoundSum - a.secondRoundSum;
+          }
+          if (b.thirdRoundSum !== a.thirdRoundSum) {
+            return b.thirdRoundSum - a.thirdRoundSum;
+          }
+
+          // 3) 1순에서 먼저 맞춘 사람 (왼쪽부터 비교)
+          for (let i = 0; i < a.firstRoundShots.length; i++) {
+            if (b.firstRoundShots[i] !== a.firstRoundShots[i]) {
+              // 더 빠른 시간에 맞춘(값이 1인) 사람이 우위
+              return b.firstRoundShots[i] - a.firstRoundShots[i];
+            }
+          }
+
+          // 완전 동률이면 순서 유지
+          return 0;
+        });
+
         tbody.innerHTML = "";
-
         items.forEach((item, idx) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${idx + 1}</td>
             <td class="name">${item.name}</td>
             <td>${item.total}</td>
+            <td>${item.firstRoundSum} / ${item.secondRoundSum} / ${item.thirdRoundSum}</td>
           `;
           tbody.appendChild(tr);
         });
 
-        const updated = document.getElementById("updated");
         const now = new Date();
         updated.textContent =
           "마지막 갱신: " +
           now.toLocaleTimeString("ko-KR", { hour12: false });
       } catch (e) {
         console.error(e);
-        document.getElementById("updated").textContent =
-          "불러오는 중 오류가 발생했습니다.";
+        updated.textContent = "불러오는 중 오류가 발생했습니다: " + e.message;
+        tbody.innerHTML = "";
       }
     }
 
     loadRanking();
-    // 10초마다 자동 갱신
     setInterval(loadRanking, 10000);
   </script>
 </body>
