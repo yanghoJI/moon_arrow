@@ -73,15 +73,72 @@
     // 👉 여기만 "board" 탭의 CSV 주소로 바꿔주면 됨
     const NOTICES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ/pub?gid=651255673&single=true&output=csv";
 
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const nextChar = text[i + 1];
+
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            value += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (!inQuotes && char === ',') {
+          row.push(value);
+          value = "";
+          continue;
+        }
+
+        if (!inQuotes && char === '\n') {
+          row.push(value);
+          rows.push(row);
+          row = [];
+          value = "";
+          continue;
+        }
+
+        if (!inQuotes && char === '\r') {
+          if (nextChar === '\n') {
+            i += 1;
+          }
+          row.push(value);
+          rows.push(row);
+          row = [];
+          value = "";
+          continue;
+        }
+
+        value += char;
+      }
+
+      if (inQuotes) {
+        throw new Error("CSV 파싱 중 따옴표가 닫히지 않았습니다.");
+      }
+
+      if (value !== "" || row.length > 0) {
+        row.push(value);
+        rows.push(row);
+      }
+
+      return rows;
+    }
+
     async function loadNotices() {
       try {
         const res = await fetch(NOTICES_CSV_URL + "&cachebuster=" + Date.now());
         const text = await res.text();
 
-        const rows = text
-          .trim()
-          .split(/\r?\n/)
-          .map(line => line.split(","));
+        const rows = parseCsv(text.trim());
 
         // rows[0] : 1행(빈줄)
         // rows[1] : 2행(빈줄)
