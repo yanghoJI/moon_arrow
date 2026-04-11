@@ -99,6 +99,18 @@ async def fetch_rank_sheet() -> tuple:
     return _parse_rankings(rows), _parse_squads(rows)
 
 
+def make_teams(rankings: list, num_teams: int) -> list:
+    """스네이크 드래프트로 num_teams개의 팀에 선수를 배분."""
+    teams = [{"team_num": i + 1, "members": [], "total": 0} for i in range(num_teams)]
+    for i, player in enumerate(rankings):
+        round_num = i // num_teams
+        pos = i % num_teams
+        team_idx = pos if round_num % 2 == 0 else (num_teams - 1 - pos)
+        teams[team_idx]["members"].append(player)
+        teams[team_idx]["total"] += player["total"]
+    return teams
+
+
 async def fetch_notices() -> list:
     rows = await _fetch_csv(NOTICE_URL)
     items = []
