@@ -1,5 +1,6 @@
 import csv
 import io
+import time
 from typing import TypedDict
 
 import httpx
@@ -44,13 +45,14 @@ def _safe_int(value: str) -> int:
 
 async def _fetch_csv(url: str) -> list:
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        res = await client.get(url)
+        res = await client.get(f"{url}&t={int(time.time())}")
         res.raise_for_status()
+        if res.text.strip().startswith("<"):
+            raise ValueError("CSV 대신 HTML 응답이 왔습니다. (공유/권한 설정 확인 필요)")
         return list(csv.reader(io.StringIO(res.text)))
 
 
-async def fetch_rankings() -> list:
-    rows = await _fetch_csv(RANK_URL)
+def _parse_rankings(rows: list) -> list:
     items = []
     for cols in rows[2:]:
         while len(cols) <= 21:
@@ -77,20 +79,7 @@ async def fetch_rankings() -> list:
     return items
 
 
-async def fetch_notices() -> list:
-    rows = await _fetch_csv(NOTICE_URL)
-    items = []
-    for cols in rows[3:]:
-        while len(cols) <= 3:
-            cols.append("")
-        body = cols[2].strip()
-        if body and cols[3].strip() == "1":
-            items.append(NoticeItem(time=cols[1].strip(), body=body))
-    return list(reversed(items))
-
-
-async def fetch_squads() -> list:
-    rows = await _fetch_csv(RANK_URL)
+def _parse_squads(rows: list) -> list:
     squads: dict = {}
     for cols in rows[2:]:
         while len(cols) <= 1:
@@ -102,3 +91,21 @@ async def fetch_squads() -> list:
 
     sorted_keys = sorted(squads, key=lambda k: int(k) if k.isdigit() else 0)
     return [SquadItem(squad_num=k, members=squads[k]) for k in sorted_keys]
+
+
+async def fetch_rank_sheet() -> tuple:
+    """RANK_URL을 한 번만 fetch해서 rankings와 squads를 함께 반환."""
+    rows = await _fetch_csv(RANK_URL)
+    return _parse_rankings(rows), _parse_squads(rows)
+
+
+async def fetch_notices() -> list:
+    rows = await _fetch_csv(NOTICE_URL)
+    items = []
+    for cols in rows[3:]:
+        while len(cols) <= 3:
+            cols.append("")
+        body = cols[2].strip()
+        if body and cols[3].strip() == "1":
+            items.append(NoticeItem(time=cols[1].strip(), body=body))
+    return list(reversed(items))
