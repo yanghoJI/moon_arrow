@@ -123,20 +123,20 @@
             const name = (cols[1] ?? "").trim();      // B열: 이름
             if (!name) return null;
 
-            const total = Number(cols[3] ?? 0);       // D열: 총합
+            const total = Number(cols[6] ?? 0);       // G열: 총합
 
-            // 1순 시간별 (E~I → 인덱스 4~8)
+            // 1순 시간별 (H~L → 인덱스 7~11)
             const firstRoundShots = [
-              Number(cols[4] ?? 0),
-              Number(cols[5] ?? 0),
-              Number(cols[6] ?? 0),
-              Number(cols[7] ?? 0),
-              Number(cols[8] ?? 0),
+              Number(cols[7]  ?? 0),
+              Number(cols[8]  ?? 0),
+              Number(cols[9]  ?? 0),
+              Number(cols[10] ?? 0),
+              Number(cols[11] ?? 0),
             ];
 
-            const firstRoundSum  = Number(cols[9]  ?? 0);  // J열: 1순 합
-            const secondRoundSum = Number(cols[15] ?? 0);  // P열: 2순 합
-            const thirdRoundSum  = Number(cols[21] ?? 0);  // V열: 3순 합
+            const firstRoundSum  = Number(cols[12] ?? 0);  // M열: 1순 합
+            const secondRoundSum = Number(cols[18] ?? 0);  // S열: 2순 합
+            const thirdRoundSum  = Number(cols[24] ?? 0);  // Y열: 3순 합
 
             return {
               name,
