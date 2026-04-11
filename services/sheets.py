@@ -19,6 +19,9 @@ NOTICE_URL = (
 
 class RankItem(TypedDict):
     name: str
+    group: str
+    dum: str
+    hap_si: int
     total: int
     first_round_sum: int
     second_round_sum: int
@@ -55,18 +58,21 @@ async def _fetch_csv(url: str) -> list:
 def _parse_rankings(rows: list) -> list:
     items = []
     for cols in rows[2:]:
-        while len(cols) <= 21:
+        while len(cols) <= 24:
             cols.append("")
         name = cols[1].strip()
         if not name:
             continue
         items.append(RankItem(
             name=name,
-            total=_safe_int(cols[3]),
-            first_round_shots=[_safe_int(cols[i]) for i in range(4, 9)],
-            first_round_sum=_safe_int(cols[9]),
-            second_round_sum=_safe_int(cols[15]),
-            third_round_sum=_safe_int(cols[21]),
+            group=cols[3].strip(),
+            dum=cols[4].strip(),
+            hap_si=_safe_int(cols[5]),
+            total=_safe_int(cols[6]),
+            first_round_shots=[_safe_int(cols[i]) for i in range(7, 12)],
+            first_round_sum=_safe_int(cols[12]),
+            second_round_sum=_safe_int(cols[18]),
+            third_round_sum=_safe_int(cols[24]),
         ))
 
     items.sort(key=lambda x: (
@@ -100,14 +106,15 @@ async def fetch_rank_sheet() -> tuple:
 
 
 def make_teams(rankings: list, num_teams: int) -> list:
-    """스네이크 드래프트로 num_teams개의 팀에 선수를 배분."""
-    teams = [{"team_num": i + 1, "members": [], "total": 0} for i in range(num_teams)]
-    for i, player in enumerate(rankings):
+    """합시 기준 스네이크 드래프트로 num_teams개의 팀에 선수를 배분."""
+    sorted_players = sorted(rankings, key=lambda x: -x["hap_si"])
+    teams = [{"team_num": i + 1, "members": [], "hap_si_total": 0} for i in range(num_teams)]
+    for i, player in enumerate(sorted_players):
         round_num = i // num_teams
         pos = i % num_teams
         team_idx = pos if round_num % 2 == 0 else (num_teams - 1 - pos)
         teams[team_idx]["members"].append(player)
-        teams[team_idx]["total"] += player["total"]
+        teams[team_idx]["hap_si_total"] += player["hap_si"]
     return teams
 
 

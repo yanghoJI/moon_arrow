@@ -73,6 +73,9 @@
       <tr>
         <th>순위</th>
         <th>이름</th>
+        <th>그룹</th>
+        <th>덤</th>
+        <th>합시</th>
         <th>총합</th>
         <th>1·2·3순 합</th>
       </tr>
@@ -82,6 +85,9 @@
       <tr>
         <td>{{ loop.index }}</td>
         <td class="name">{{ item.name }}</td>
+        <td>{{ item.group }}</td>
+        <td>{{ item.dum }}</td>
+        <td>{{ item.hap_si }}</td>
         <td>{{ item.total }}</td>
         <td>{{ item.first_round_sum }} / {{ item.second_round_sum }} / {{ item.third_round_sum }}</td>
       </tr>

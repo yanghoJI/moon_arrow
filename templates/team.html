@@ -105,7 +105,7 @@
       <div class="team-header">
         <span class="team-name">팀 {{ team.team_num }}</span>
         <span>
-          <span class="team-total">{{ team.total }}</span>
+          <span class="team-total">{{ team.hap_si_total }}</span>
           <span class="team-total-label">점</span>
         </span>
       </div>
@@ -116,7 +116,7 @@
             <span class="draft-order">{{ loop.index }}픽</span>
             <span class="member-name">{{ member.name }}</span>
           </span>
-          <span class="member-score">{{ member.total }}점</span>
+          <span class="member-score">{{ member.hap_si }}점</span>
         </li>
         {% endfor %}
       </ul>
