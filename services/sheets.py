@@ -5,15 +5,33 @@ from typing import TypedDict
 
 import httpx
 
+RANK_REQUIRED_HEADERS = (
+    "작대",
+    "이름",
+    "순위",
+    "그룹",
+    "덤",
+    "합시",
+    "총합",
+    "1순 합",
+    "2순 합",
+    "3순 합",
+)
+ROUND_SHOT_HEADERS = (
+    ("1-1", "1-2", "1-3", "1-4", "1-5"),
+    ("2-1", "2-2", "2-3", "2-4", "2-5"),
+    ("3-1", "3-2", "3-3", "3-4", "3-5"),
+)
+
 RANK_URL = (
-    "https://docs.google.com/spreadsheets/d/e/"
-    "2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ"
-    "/pub?gid=0&single=true&output=csv"
+    "https://docs.google.com/spreadsheets/d/"
+    "1A6Y1lS0ol4r4r1wro0c9dC4Xi-MkpYrhZ38QRVpvEoM"
+    "/gviz/tq?tqx=out:csv&sheet=rank"
 )
 NOTICE_URL = (
-    "https://docs.google.com/spreadsheets/d/e/"
-    "2PACX-1vTqsmOlxzgGxrh91wGE0b92x3x40Ta1ZT2l0yd6rTKq5HsrZSng3qocNXwmypouA5F6H68HV46GPVHJ"
-    "/pub?gid=651255673&single=true&output=csv"
+    "https://docs.google.com/spreadsheets/d/"
+    "1A6Y1lS0ol4r4r1wro0c9dC4Xi-MkpYrhZ38QRVpvEoM"
+    "/gviz/tq?tqx=out:csv&sheet=board"
 )
 
 
@@ -27,6 +45,12 @@ class RankItem(TypedDict):
     second_round_sum: int
     third_round_sum: int
     first_round_shots: list
+    second_round_shots: list
+    third_round_shots: list
+    first_round_display: str
+    second_round_display: str
+    third_round_display: str
+    is_sit_out: bool
 
 
 class NoticeItem(TypedDict):
@@ -46,6 +70,45 @@ def _safe_int(value: str) -> int:
         return 0
 
 
+def _find_header_index(rows: list, required_headers: tuple[str, ...]) -> int:
+    required = set(required_headers)
+    for index, row in enumerate(rows):
+        headers = {value.strip() for value in row if value.strip()}
+        if required.issubset(headers):
+            return index
+    missing = ", ".join(required_headers)
+    raise ValueError(f"필수 헤더 행을 찾을 수 없습니다: {missing}")
+
+
+def _validate_headers(headers: list, required_headers: tuple[str, ...]) -> None:
+    header_set = {header.strip() for header in headers if header.strip()}
+    missing = [header for header in required_headers if header not in header_set]
+    for round_headers in ROUND_SHOT_HEADERS:
+        missing.extend(header for header in round_headers if header not in header_set)
+    if missing:
+        raise ValueError(f"필수 헤더가 없습니다: {', '.join(missing)}")
+
+
+def _row_to_dict(headers: list, cols: list) -> dict:
+    row = {}
+    for index, header in enumerate(headers):
+        header = header.strip()
+        if not header:
+            continue
+        row[header] = cols[index].strip() if index < len(cols) else ""
+    return row
+
+
+def _round_values(row: dict, headers: tuple[str, ...]) -> tuple[list[int], str]:
+    values = [row.get(header, "").strip() for header in headers]
+    if all(value == "" for value in values):
+        return [0 for _ in headers], "-"
+    if any(value == "0" for value in values):
+        return [_safe_int(value) for value in values], "0"
+    shots = [_safe_int(value) for value in values]
+    return shots, str(sum(shots))
+
+
 async def _fetch_csv(url: str) -> list:
     async with httpx.AsyncClient(follow_redirects=True) as client:
         res = await client.get(f"{url}&t={int(time.time())}")
@@ -56,23 +119,38 @@ async def _fetch_csv(url: str) -> list:
 
 
 def _parse_rankings(rows: list) -> list:
+    if not rows:
+        return []
+
+    header_index = _find_header_index(rows, RANK_REQUIRED_HEADERS)
+    headers = rows[header_index]
+    _validate_headers(headers, RANK_REQUIRED_HEADERS)
+
     items = []
-    for cols in rows[2:]:
-        while len(cols) <= 24:
-            cols.append("")
-        name = cols[1].strip()
+    for cols in rows[header_index + 1:]:
+        row = _row_to_dict(headers, cols)
+        name = row.get("이름", "")
         if not name:
             continue
+        first_round_shots, first_round_display = _round_values(row, ROUND_SHOT_HEADERS[0])
+        second_round_shots, second_round_display = _round_values(row, ROUND_SHOT_HEADERS[1])
+        third_round_shots, third_round_display = _round_values(row, ROUND_SHOT_HEADERS[2])
         items.append(RankItem(
             name=name,
-            group=cols[3].strip(),
-            dum=cols[4].strip(),
-            hap_si=_safe_int(cols[5]),
-            total=_safe_int(cols[6]),
-            first_round_shots=[_safe_int(cols[i]) for i in range(7, 12)],
-            first_round_sum=_safe_int(cols[12]),
-            second_round_sum=_safe_int(cols[18]),
-            third_round_sum=_safe_int(cols[24]),
+            group=row.get("그룹", ""),
+            dum=row.get("덤", ""),
+            hap_si=_safe_int(row.get("합시", "")),
+            total=_safe_int(row.get("총합", "")),
+            first_round_shots=first_round_shots,
+            second_round_shots=second_round_shots,
+            third_round_shots=third_round_shots,
+            first_round_sum=_safe_int(row.get("1순 합", "")),
+            second_round_sum=_safe_int(row.get("2순 합", "")),
+            third_round_sum=_safe_int(row.get("3순 합", "")),
+            first_round_display=first_round_display,
+            second_round_display=second_round_display,
+            third_round_display=third_round_display,
+            is_sit_out=row.get("그룹", "") == "-",
         ))
 
     items.sort(key=lambda x: (
@@ -86,12 +164,17 @@ def _parse_rankings(rows: list) -> list:
 
 
 def _parse_squads(rows: list) -> list:
+    if not rows:
+        return []
+
+    header_index = _find_header_index(rows, ("작대", "이름"))
+    headers = rows[header_index]
+
     squads: dict = {}
-    for cols in rows[2:]:
-        while len(cols) <= 1:
-            cols.append("")
-        squad_num = cols[0].strip()
-        name = cols[1].strip()
+    for cols in rows[header_index + 1:]:
+        row = _row_to_dict(headers, cols)
+        squad_num = row.get("작대", "")
+        name = row.get("이름", "")
         if squad_num and name:
             squads.setdefault(squad_num, []).append(name)
 
@@ -119,7 +202,14 @@ def make_teams(rankings: list, num_teams: int) -> list:
 
 
 async def fetch_notices() -> list:
-    rows = await _fetch_csv(NOTICE_URL)
+    try:
+        rows = await _fetch_csv(NOTICE_URL)
+    except (httpx.HTTPError, ValueError) as exc:
+        print(f"[board] 공지 탭을 사용할 수 없어 비활성화합니다: {exc}")
+        return []
+    if not rows:
+        return []
+
     items = []
     for cols in rows[3:]:
         while len(cols) <= 3:
