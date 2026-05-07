@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Optional
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -109,10 +110,14 @@ async def index(request: Request):
 
 
 @app.get("/rank", response_class=HTMLResponse)
-async def rank(request: Request):
+async def rank(request: Request, group: Optional[str] = None):
+    groups = sheets.available_groups(cache["rankings"])
+    selected_group = group if group in groups else None
     return templates.TemplateResponse("rank.html", {
         "request": request,
-        "rankings": cache["rankings"],
+        "rankings": sheets.ranked_items(cache["rankings"], selected_group),
+        "groups": groups,
+        "selected_group": selected_group,
         "last_updated": cache["last_updated"],
     })
 

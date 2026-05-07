@@ -1,7 +1,7 @@
 import csv
 import io
 import time
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 import httpx
 
@@ -109,6 +109,19 @@ def _round_values(row: dict, headers: tuple[str, ...]) -> tuple[list[int], str]:
     return shots, str(sum(shots))
 
 
+def _rank_sort_key(item: dict, apply_gakgung_priority: bool = False) -> tuple:
+    gakgung_priority = 0 if item["group"] == "각궁" else 1
+    if not apply_gakgung_priority:
+        gakgung_priority = 0
+    return (
+        -item["total"],
+        gakgung_priority,
+        -item["first_round_sum"],
+        -item["second_round_sum"],
+        -item["third_round_sum"],
+    ) + tuple(-score for score in item["first_round_shots"])
+
+
 async def _fetch_csv(url: str) -> list:
     async with httpx.AsyncClient(follow_redirects=True) as client:
         res = await client.get(f"{url}&t={int(time.time())}")
@@ -153,14 +166,23 @@ def _parse_rankings(rows: list) -> list:
             is_sit_out=row.get("그룹", "") == "-",
         ))
 
-    items.sort(key=lambda x: (
-        -x["total"],
-        -x["first_round_sum"],
-        -x["second_round_sum"],
-        -x["third_round_sum"],
-    ) + tuple(-s for s in x["first_round_shots"]))
-
     return items
+
+
+def available_groups(rankings: list) -> list:
+    groups = {
+        item["group"]
+        for item in rankings
+        if item.get("group") and not item.get("is_sit_out")
+    }
+    return sorted(groups)
+
+
+def ranked_items(rankings: list, group: Optional[str] = None) -> list:
+    items = [item for item in rankings if not item.get("is_sit_out")]
+    if group:
+        items = [item for item in items if item["group"] == group]
+    return sorted(items, key=lambda item: _rank_sort_key(item, not group))
 
 
 def _parse_squads(rows: list) -> list:
@@ -190,7 +212,8 @@ async def fetch_rank_sheet() -> tuple:
 
 def make_teams(rankings: list, num_teams: int) -> list:
     """합시 기준 스네이크 드래프트로 num_teams개의 팀에 선수를 배분."""
-    sorted_players = sorted(rankings, key=lambda x: -x["hap_si"])
+    eligible_players = [player for player in rankings if not player.get("is_sit_out")]
+    sorted_players = sorted(eligible_players, key=lambda x: -x["hap_si"])
     teams = [{"team_num": i + 1, "members": [], "hap_si_total": 0} for i in range(num_teams)]
     for i, player in enumerate(sorted_players):
         round_num = i // num_teams
