@@ -9,7 +9,6 @@ import httpx
 RANK_REQUIRED_HEADERS = (
     "작대",
     "이름",
-    "순위",
     "그룹",
     "덤",
     "합시",
