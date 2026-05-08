@@ -22,12 +22,62 @@ moon_arrow/
     └── refresh.html      # 갱신 결과
 ```
 
-## 실행 방법
+## 개발 환경 실행 방법
+
+### 1. Python 확인
+
+Python 3가 설치되어 있어야 합니다.
 
 ```bash
-pip install -r requirements.txt
-python main.py
-# → http://0.0.0.0:10555
+python3 --version
+```
+
+### 2. 의존성 설치
+
+```bash
+python3 -m pip install -r requirements.txt
+```
+
+### 3. API 서버 실행
+
+```bash
+python3 main.py
+```
+
+서버는 기본적으로 `10555` 포트에서 실행됩니다.
+
+```text
+http://127.0.0.1:10555
+```
+
+운영자 페이지:
+
+```text
+http://127.0.0.1:10555/admin
+```
+
+### 4. 서버 종료
+
+터미널에서 아래 키를 누릅니다.
+
+```text
+Ctrl + C
+```
+
+### 5. 구글시트 설정 파일
+
+운영자 페이지에서 구글시트 공유 주소를 저장하면 프로젝트 루트에 `sheet_config.json`이 생성됩니다.
+
+이 파일은 로컬 실행 환경별 설정 파일이라 Git에 커밋하지 않습니다.
+
+### 6. 주요 개발 확인 명령
+
+```bash
+python3 -m py_compile main.py services/sheets.py services/settings.py
+```
+
+```bash
+curl http://127.0.0.1:10555/api/refresh
 ```
 
 ## 페이지
