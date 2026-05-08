@@ -298,6 +298,10 @@ tr:nth-child(even) td {
   font-size: 18px;
 }
 
+.admin-panel.wide {
+  grid-column: 1 / -1;
+}
+
 .admin-form {
   display: flex;
   flex-wrap: wrap;
@@ -318,6 +322,12 @@ tr:nth-child(even) td {
   font: inherit;
 }
 
+.admin-form.sheet-form input {
+  flex: 1 1 320px;
+  width: auto;
+  min-width: 0;
+}
+
 .admin-refresh-note {
   margin: 0 0 12px;
   color: #666;
@@ -332,6 +342,16 @@ tr:nth-child(even) td {
   border: 1px solid #ffc9c9;
   border-radius: 8px;
   color: #cf222e;
+  font-weight: 700;
+}
+
+.success-box {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #effbef;
+  border: 1px solid #b7e4b7;
+  border-radius: 8px;
+  color: #1a7f37;
   font-weight: 700;
 }
 

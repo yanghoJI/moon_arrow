@@ -6,6 +6,8 @@ from typing import Optional, TypedDict
 
 import httpx
 
+from services import settings
+
 RANK_REQUIRED_HEADERS = (
     "작대",
     "이름",
@@ -22,18 +24,6 @@ ROUND_SHOT_HEADERS = (
     ("2-1", "2-2", "2-3", "2-4", "2-5"),
     ("3-1", "3-2", "3-3", "3-4", "3-5"),
 )
-
-RANK_URL = (
-    "https://docs.google.com/spreadsheets/d/"
-    "1A6Y1lS0ol4r4r1wro0c9dC4Xi-MkpYrhZ38QRVpvEoM"
-    "/gviz/tq?tqx=out:csv&sheet=rank"
-)
-NOTICE_URL = (
-    "https://docs.google.com/spreadsheets/d/"
-    "1A6Y1lS0ol4r4r1wro0c9dC4Xi-MkpYrhZ38QRVpvEoM"
-    "/gviz/tq?tqx=out:csv&sheet=board"
-)
-
 
 class RankItem(TypedDict):
     name: str
@@ -219,9 +209,9 @@ def _parse_squads(rows: list) -> list:
     return [SquadItem(squad_num=k, members=squads[k]) for k in sorted_keys]
 
 
-async def fetch_rank_sheet() -> tuple:
-    """RANK_URL을 한 번만 fetch해서 rankings와 squads를 함께 반환."""
-    rows = await _fetch_csv(RANK_URL)
+async def fetch_rank_sheet(spreadsheet_id: Optional[str] = None) -> tuple:
+    """rank 시트를 한 번만 fetch해서 rankings와 squads를 함께 반환."""
+    rows = await _fetch_csv(settings.get_csv_url("rank", spreadsheet_id))
     return _parse_rankings(rows), _parse_squads(rows)
 
 
@@ -303,9 +293,9 @@ def make_teams(rankings: list, num_teams: int) -> list:
     return teams
 
 
-async def fetch_notices() -> list:
+async def fetch_notices(spreadsheet_id: Optional[str] = None) -> list:
     try:
-        rows = await _fetch_csv(NOTICE_URL)
+        rows = await _fetch_csv(settings.get_csv_url("board", spreadsheet_id))
     except (httpx.HTTPError, ValueError) as exc:
         print(f"[board] 공지 탭을 사용할 수 없어 비활성화합니다: {exc}")
         return []

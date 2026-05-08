@@ -8,7 +8,7 @@
     {% if last_updated %}기준 데이터: {{ last_updated }}{% else %}데이터 없음{% endif %}
   </div>
   <div class="page-actions">
-    <a class="btn" href="/">홈으로</a>
+    <a class="btn" href="{{ home_url or '/' }}">홈으로</a>
   </div>
 
   {% if not teams %}
@@ -42,6 +42,6 @@
   {% endif %}
 
   <div class="page-actions bottom">
-    <a class="btn" href="/">홈으로</a>
+    <a class="btn" href="{{ home_url or '/' }}">홈으로</a>
   </div>
 {% endblock %}

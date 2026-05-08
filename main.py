@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
+from urllib.parse import urlencode
 from typing import Optional
 
 from fastapi import FastAPI, Request
@@ -8,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from services import sheets
+from services import settings, sheets
 
 REFRESH_INTERVAL_SECONDS = 10
 
@@ -72,6 +73,10 @@ app.mount("/static", StaticFiles(directory="static", check_dir=False), name="sta
 templates = Jinja2Templates(directory="templates")
 
 
+def _safe_home_url(home: str) -> str:
+    return "/admin" if home == "/admin" else "/"
+
+
 def _diff(old_cache: dict) -> tuple:
     rank_changes = []
     notice_changes = []
@@ -128,7 +133,8 @@ def _squad_member_names(squad: dict) -> set:
 
 
 @app.get("/api/refresh")
-async def api_refresh(request: Request):
+async def api_refresh(request: Request, home: str = "/"):
+    home_url = _safe_home_url(home)
     old_cache = {
         "rankings": list(cache["rankings"]),
         "notices": list(cache["notices"]),
@@ -143,6 +149,7 @@ async def api_refresh(request: Request):
         "rank_changes": rank_changes,
         "notice_changes": notice_changes,
         "squad_changes": squad_changes,
+        "home_url": home_url,
     })
 
 
@@ -167,7 +174,24 @@ async def admin(request: Request):
         "last_updated": cache["last_updated"],
         "last_error": cache["last_error"],
         "refresh_interval": REFRESH_INTERVAL_SECONDS,
+        "spreadsheet_url": settings.get_spreadsheet_url(),
+        "sheet_saved": request.query_params.get("sheet_saved"),
+        "sheet_error": request.query_params.get("sheet_error"),
     })
+
+
+@app.get("/api/sheets")
+async def api_sheets(url: str):
+    try:
+        spreadsheet_id = settings.parse_spreadsheet_id(url)
+        await sheets.fetch_rank_sheet(spreadsheet_id)
+    except Exception as exc:
+        query = urlencode({"sheet_error": str(exc)})
+        return RedirectResponse(url=f"/admin?{query}", status_code=303)
+
+    settings.save_spreadsheet_id(spreadsheet_id)
+    await _refresh_cache()
+    return RedirectResponse(url="/admin?sheet_saved=1", status_code=303)
 
 
 @app.get("/rank", response_class=HTMLResponse)
@@ -193,31 +217,35 @@ async def board(request: Request):
 
 
 @app.get("/api/team/clear")
-async def api_team_clear():
+async def api_team_clear(home: str = "/"):
+    home_url = _safe_home_url(home)
     cache["teams"] = []
     cache["num_teams"] = 0
     cache["team_diff"] = 0
-    return RedirectResponse(url="/team", status_code=303)
+    return RedirectResponse(url=f"/team?{urlencode({'home': home_url})}", status_code=303)
 
 
 @app.get("/api/team")
-async def api_team(n: int = 2):
+async def api_team(n: int = 2, home: str = "/"):
+    home_url = _safe_home_url(home)
     player_count = len(sheets.eligible_team_players(cache["rankings"]))
     n = max(2, min(n, player_count or 2))
     cache["teams"] = sheets.make_teams(cache["rankings"], n)
     cache["num_teams"] = n
     cache["team_diff"] = sheets.team_score_diff(cache["teams"])
-    return RedirectResponse(url="/team", status_code=303)
+    return RedirectResponse(url=f"/team?{urlencode({'home': home_url})}", status_code=303)
 
 
 @app.get("/team", response_class=HTMLResponse)
-async def team(request: Request):
+async def team(request: Request, home: str = "/"):
+    home_url = _safe_home_url(home)
     return templates.TemplateResponse("team.html", {
         "request": request,
         "teams": cache["teams"],
         "num_teams": cache["num_teams"],
         "team_diff": cache["team_diff"],
         "last_updated": cache["last_updated"],
+        "home_url": home_url,
     })
 
 

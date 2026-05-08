@@ -11,8 +11,14 @@
   {% if last_error %}
   <div class="error-box">마지막 갱신 오류: {{ last_error }}</div>
   {% endif %}
+  {% if sheet_error %}
+  <div class="error-box">{{ sheet_error }}</div>
+  {% endif %}
+  {% if sheet_saved %}
+  <div class="success-box">구글 시트 주소를 저장하고 데이터를 갱신했습니다.</div>
+  {% endif %}
   <div class="page-actions">
-    <a class="btn" href="/">홈으로</a>
+    <a class="btn" href="/admin">홈으로</a>
   </div>
 
   <div class="admin-grid">
@@ -47,21 +53,31 @@
   <div class="admin-actions">
     <div class="admin-panel">
       <h2>데이터 갱신</h2>
-      <a class="btn" href="/api/refresh">데이터 갱신</a>
+      <a class="btn" href="/api/refresh?home=/admin">데이터 갱신</a>
     </div>
 
     <div class="admin-panel">
       <h2>팀 배정</h2>
       <form class="admin-form" method="get" action="/api/team">
+        <input type="hidden" name="home" value="/admin">
         <label for="team-count">팀 수</label>
         <input id="team-count" name="n" type="number" min="2" max="{{ eligible_count or 2 }}" value="{{ team_count or 4 }}">
         <button class="btn" type="submit">팀 생성</button>
       </form>
-      <a class="btn" href="/api/team/clear">팀 초기화</a>
+      <a class="btn" href="/api/team/clear?home=/admin">팀 초기화</a>
+    </div>
+
+    <div class="admin-panel wide">
+      <h2>구글 시트</h2>
+      <form class="admin-form sheet-form" method="get" action="/api/sheets">
+        <label for="sheet-url">공유 주소</label>
+        <input id="sheet-url" name="url" type="url" value="{{ spreadsheet_url }}" required>
+        <button class="btn" type="submit">저장</button>
+      </form>
     </div>
   </div>
 
   <div class="page-actions bottom">
-    <a class="btn" href="/">홈으로</a>
+    <a class="btn" href="/admin">홈으로</a>
   </div>
 {% endblock %}

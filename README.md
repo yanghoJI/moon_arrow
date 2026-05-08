@@ -47,6 +47,7 @@ python main.py
 | `/api/refresh` | Google Sheets 전체 갱신 후 변경사항 표시 |
 | `/api/team?n=팀수` | 개인전 결과 기반 스네이크 드래프트로 팀 생성 |
 | `/api/team/clear` | 팀 구성 초기화 |
+| `/api/sheets?url=공유주소` | Google Sheets 공유 주소 저장 후 데이터 갱신 |
 
 ### 데이터 갱신 흐름
 
@@ -74,8 +75,10 @@ GET /api/team?n=4
 
 ## 데이터 소스
 
-Google Sheets 공개 CSV (웹에 게시 필요):
-- 등수/작대: `gid=0`
-- 공지: `gid=651255673`
+Google Sheets 공유 주소는 `/admin` 운영자 페이지에서 저장할 수 있습니다. 저장값은 로컬 `sheet_config.json`에 보관되며, 서버 재시작 후에도 유지됩니다.
+
+시트 탭 이름:
+- 등수/작대: `rank`
+- 공지: `board`
 
 > 시트 수정 후 반영까지 Google CDN 딜레이가 있을 수 있습니다. `/api/refresh` 호출 후 변경사항이 없으면 잠시 후 재시도하세요.
