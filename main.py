@@ -16,6 +16,7 @@ cache: dict = {
     "squads": [],
     "teams": [],
     "num_teams": 0,
+    "team_diff": 0,
     "last_updated": None,
 }
 
@@ -147,14 +148,17 @@ async def board(request: Request):
 async def api_team_clear():
     cache["teams"] = []
     cache["num_teams"] = 0
+    cache["team_diff"] = 0
     return RedirectResponse(url="/team", status_code=303)
 
 
 @app.get("/api/team")
 async def api_team(n: int = 2):
-    n = max(2, min(n, len(cache["rankings"]) or 2))
+    player_count = len(sheets.eligible_team_players(cache["rankings"]))
+    n = max(2, min(n, player_count or 2))
     cache["teams"] = sheets.make_teams(cache["rankings"], n)
     cache["num_teams"] = n
+    cache["team_diff"] = sheets.team_score_diff(cache["teams"])
     return RedirectResponse(url="/team", status_code=303)
 
 
@@ -164,6 +168,7 @@ async def team(request: Request):
         "request": request,
         "teams": cache["teams"],
         "num_teams": cache["num_teams"],
+        "team_diff": cache["team_diff"],
         "last_updated": cache["last_updated"],
     })
 

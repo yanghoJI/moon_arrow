@@ -1,5 +1,6 @@
 import csv
 import io
+import math
 import time
 from typing import Optional, TypedDict
 
@@ -191,6 +192,10 @@ def ranked_items(rankings: list, group: Optional[str] = None) -> list:
     return sorted(items, key=lambda item: _rank_sort_key(item, not group))
 
 
+def eligible_team_players(rankings: list) -> list:
+    return [player for player in rankings if not player.get("is_sit_out")]
+
+
 def _parse_squads(rows: list) -> list:
     if not rows:
         return []
@@ -221,17 +226,81 @@ async def fetch_rank_sheet() -> tuple:
     return _parse_rankings(rows), _parse_squads(rows)
 
 
+def team_score_diff(teams: list) -> int:
+    if not teams:
+        return 0
+    totals = [team["hap_si_total"] for team in teams]
+    return max(totals) - min(totals)
+
+
+def _rebalance_by_swaps(teams: list) -> None:
+    improved = True
+    while improved:
+        improved = False
+        current_diff = team_score_diff(teams)
+        best_swap = None
+        best_diff = current_diff
+
+        for left_index, left_team in enumerate(teams):
+            for right_index in range(left_index + 1, len(teams)):
+                right_team = teams[right_index]
+                for left_member in left_team["members"]:
+                    for right_member in right_team["members"]:
+                        left_total = (
+                            left_team["hap_si_total"]
+                            - left_member["hap_si"]
+                            + right_member["hap_si"]
+                        )
+                        right_total = (
+                            right_team["hap_si_total"]
+                            - right_member["hap_si"]
+                            + left_member["hap_si"]
+                        )
+                        candidate_totals = [
+                            team["hap_si_total"]
+                            for team_index, team in enumerate(teams)
+                            if team_index not in (left_index, right_index)
+                        ] + [left_total, right_total]
+                        candidate_diff = max(candidate_totals) - min(candidate_totals)
+                        if candidate_diff < best_diff:
+                            best_diff = candidate_diff
+                            best_swap = (
+                                left_team,
+                                right_team,
+                                left_member,
+                                right_member,
+                                left_total,
+                                right_total,
+                            )
+
+        if best_swap:
+            left_team, right_team, left_member, right_member, left_total, right_total = best_swap
+            left_team["members"].remove(left_member)
+            right_team["members"].remove(right_member)
+            left_team["members"].append(right_member)
+            right_team["members"].append(left_member)
+            left_team["hap_si_total"] = left_total
+            right_team["hap_si_total"] = right_total
+            improved = True
+
+
 def make_teams(rankings: list, num_teams: int) -> list:
-    """합시 기준 스네이크 드래프트로 num_teams개의 팀에 선수를 배분."""
-    eligible_players = [player for player in rankings if not player.get("is_sit_out")]
-    sorted_players = sorted(eligible_players, key=lambda x: -x["hap_si"])
+    """합시 기준으로 팀 합계 편차가 작도록 num_teams개의 팀에 선수를 배분."""
+    sorted_players = sorted(eligible_team_players(rankings), key=lambda x: -x["hap_si"])
     teams = [{"team_num": i + 1, "members": [], "hap_si_total": 0} for i in range(num_teams)]
-    for i, player in enumerate(sorted_players):
-        round_num = i // num_teams
-        pos = i % num_teams
-        team_idx = pos if round_num % 2 == 0 else (num_teams - 1 - pos)
-        teams[team_idx]["members"].append(player)
-        teams[team_idx]["hap_si_total"] += player["hap_si"]
+    if not sorted_players:
+        return teams
+
+    max_team_size = math.ceil(len(sorted_players) / num_teams)
+    for player in sorted_players:
+        candidates = [team for team in teams if len(team["members"]) < max_team_size]
+        team = min(candidates, key=lambda x: (x["hap_si_total"], len(x["members"]), x["team_num"]))
+        team["members"].append(player)
+        team["hap_si_total"] += player["hap_si"]
+
+    _rebalance_by_swaps(teams)
+    for team in teams:
+        team["members"].sort(key=lambda x: -x["hap_si"])
     return teams
 
 

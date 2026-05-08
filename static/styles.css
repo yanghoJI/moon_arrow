@@ -214,6 +214,15 @@ tr:nth-child(even) td {
   gap: 16px;
 }
 
+.team-summary {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 8px;
+  color: #333;
+  font-weight: 700;
+}
+
 .team {
   padding: 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
