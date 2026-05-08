@@ -10,7 +10,10 @@ moon_arrow/
 ├── requirements.txt
 ├── services/
 │   └── sheets.py        # Google Sheets fetch, 파싱, 정렬, 팀 구성 로직
+├── static/
+│   └── styles.css       # 공통 CSS
 └── templates/
+    ├── base.html         # 공통 레이아웃
     ├── index.html        # 메인 페이지
     ├── rank.html         # 현재 등수
     ├── board.html        # 공지 / 상황판
@@ -24,7 +27,7 @@ moon_arrow/
 ```bash
 pip install -r requirements.txt
 python main.py
-# → http://0.0.0.0:9500
+# → http://0.0.0.0:10555
 ```
 
 ## 페이지

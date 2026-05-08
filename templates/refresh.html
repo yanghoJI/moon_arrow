@@ -1,65 +1,20 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>갱신 결과</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      padding: 16px;
-      background: #f5f5f5;
-    }
-    h1 { text-align: center; margin-bottom: 4px; }
-    .timestamp { text-align: center; font-size: 13px; color: #888; margin-bottom: 20px; }
-    .section { margin-bottom: 16px; }
-    .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      color: #fff;
-      background: #444;
-      padding: 6px 12px;
-      border-radius: 6px 6px 0 0;
-    }
-    .change-list {
-      background: #fff;
-      border-radius: 0 0 6px 6px;
-      overflow: hidden;
-    }
-    .change-item {
-      padding: 8px 12px;
-      font-size: 14px;
-      border-bottom: 1px solid #eee;
-    }
-    .change-item:last-child { border-bottom: none; }
-    .added   { color: #1a7f37; }
-    .removed { color: #cf222e; }
-    .updated { color: #9a6700; }
-    .none    { color: #888; font-style: italic; }
-    .btn {
-      display: inline-block;
-      margin: 16px 8px 0 0;
-      padding: 12px 24px;
-      background: white;
-      border-radius: 10px;
-      border: 1px solid #333;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      color: #333;
-    }
-  </style>
-</head>
-<body>
+{% extends "base.html" %}
+
+{% block title %}갱신 결과{% endblock %}
+
+{% block content %}
   <h1>갱신 완료</h1>
   <div class="timestamp">{{ updated_at }}</div>
+  <div class="page-actions">
+    <a class="btn" href="/">홈으로</a>
+  </div>
 
   <div class="section">
     <div class="section-title">등수 변경</div>
     <div class="change-list">
       {% if rank_changes %}
         {% for c in rank_changes %}
-        <div class="change-item {{ c.type }}">{{ c.msg }}</div>
+        <div class="change-item {% if c.type == 'updated' %}updated-change{% else %}{{ c.type }}{% endif %}">{{ c.msg }}</div>
         {% endfor %}
       {% else %}
         <div class="change-item none">변경사항 없음</div>
@@ -72,7 +27,7 @@
     <div class="change-list">
       {% if notice_changes %}
         {% for c in notice_changes %}
-        <div class="change-item {{ c.type }}">{{ c.msg }}</div>
+        <div class="change-item {% if c.type == 'updated' %}updated-change{% else %}{{ c.type }}{% endif %}">{{ c.msg }}</div>
         {% endfor %}
       {% else %}
         <div class="change-item none">변경사항 없음</div>
@@ -85,7 +40,7 @@
     <div class="change-list">
       {% if squad_changes %}
         {% for c in squad_changes %}
-        <div class="change-item {{ c.type }}">{{ c.msg }}</div>
+        <div class="change-item {% if c.type == 'updated' %}updated-change{% else %}{{ c.type }}{% endif %}">{{ c.msg }}</div>
         {% endfor %}
       {% else %}
         <div class="change-item none">변경사항 없음</div>
@@ -93,6 +48,7 @@
     </div>
   </div>
 
-  <a class="btn" href="/">홈으로</a>
-</body>
-</html>
+  <div class="page-actions bottom">
+    <a class="btn" href="/">홈으로</a>
+  </div>
+{% endblock %}
