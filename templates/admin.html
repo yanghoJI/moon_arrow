@@ -7,6 +7,10 @@
   <div class="updated">
     {% if last_updated %}마지막 갱신: {{ last_updated }}{% else %}데이터 없음{% endif %}
   </div>
+  <div class="admin-refresh-note">자동 데이터 갱신: {{ refresh_interval }}초마다 실행</div>
+  {% if last_error %}
+  <div class="error-box">마지막 갱신 오류: {{ last_error }}</div>
+  {% endif %}
   <div class="page-actions">
     <a class="btn" href="/">홈으로</a>
   </div>

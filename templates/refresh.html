@@ -5,6 +5,9 @@
 {% block content %}
   <h1>갱신 완료</h1>
   <div class="timestamp">{{ updated_at }}</div>
+  {% if last_error %}
+  <div class="error-box">갱신 오류: {{ last_error }}</div>
+  {% endif %}
   <div class="page-actions">
     <a class="btn" href="/">홈으로</a>
   </div>

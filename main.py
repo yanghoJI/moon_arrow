@@ -10,6 +10,8 @@ from fastapi.templating import Jinja2Templates
 
 from services import sheets
 
+REFRESH_INTERVAL_SECONDS = 10
+
 cache: dict = {
     "rankings": [],
     "notices": [],
@@ -18,25 +20,51 @@ cache: dict = {
     "num_teams": 0,
     "team_diff": 0,
     "last_updated": None,
+    "last_error": None,
 }
+
+refresh_lock = asyncio.Lock()
 
 
 async def _refresh_cache():
-    (rankings, squads), notices = await asyncio.gather(
-        sheets.fetch_rank_sheet(),
-        sheets.fetch_notices(),
-    )
-    cache["rankings"] = rankings
-    cache["squads"] = squads
-    cache["notices"] = notices
-    cache["last_updated"] = datetime.now().strftime("%H:%M:%S")
-    print(f"[cache] 갱신 완료: {cache['last_updated']}")
+    async with refresh_lock:
+        try:
+            (rankings, squads), notices = await asyncio.gather(
+                sheets.fetch_rank_sheet(),
+                sheets.fetch_notices(),
+            )
+        except Exception as exc:
+            cache["last_error"] = str(exc)
+            print(f"[cache] 갱신 실패: {cache['last_error']}")
+            return False
+
+        cache["rankings"] = rankings
+        cache["squads"] = squads
+        cache["notices"] = notices
+        cache["last_updated"] = datetime.now().strftime("%H:%M:%S")
+        cache["last_error"] = None
+        print(f"[cache] 갱신 완료: {cache['last_updated']}")
+        return True
+
+
+async def _auto_refresh_cache():
+    while True:
+        await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
+        await _refresh_cache()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await _refresh_cache()
-    yield
+    refresh_task = asyncio.create_task(_auto_refresh_cache())
+    try:
+        yield
+    finally:
+        refresh_task.cancel()
+        try:
+            await refresh_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(lifespan=lifespan)
@@ -111,6 +139,7 @@ async def api_refresh(request: Request):
     return templates.TemplateResponse("refresh.html", {
         "request": request,
         "updated_at": cache["last_updated"],
+        "last_error": cache["last_error"],
         "rank_changes": rank_changes,
         "notice_changes": notice_changes,
         "squad_changes": squad_changes,
@@ -136,6 +165,8 @@ async def admin(request: Request):
         "team_count": cache["num_teams"],
         "team_diff": cache["team_diff"],
         "last_updated": cache["last_updated"],
+        "last_error": cache["last_error"],
+        "refresh_interval": REFRESH_INTERVAL_SECONDS,
     })
 
 

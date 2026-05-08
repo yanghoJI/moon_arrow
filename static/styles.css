@@ -318,6 +318,23 @@ tr:nth-child(even) td {
   font: inherit;
 }
 
+.admin-refresh-note {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 13px;
+  text-align: right;
+}
+
+.error-box {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #fff1f1;
+  border: 1px solid #ffc9c9;
+  border-radius: 8px;
+  color: #cf222e;
+  font-weight: 700;
+}
+
 .section {
   margin-bottom: 16px;
 }
