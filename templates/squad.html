@@ -43,11 +43,26 @@
       margin: 0;
     }
     .member {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
       padding: 4px 0;
       border-bottom: 1px solid #eee;
     }
     .member:last-child {
       border-bottom: none;
+    }
+    .member-name {
+      color: #333;
+    }
+    .member-group {
+      color: #666;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .sit-out {
+      color: #cf222e;
+      font-weight: 600;
     }
     .small {
       font-size: 12px;
@@ -75,13 +90,19 @@
   <div class="updated">
     {% if last_updated %}마지막 갱신: {{ last_updated }}{% else %}불러오는 중...{% endif %}
   </div>
+  <a class="btn" href="/">홈으로</a>
   <div class="squad-list">
     {% for squad in squads %}
     <div class="squad">
-      <div class="squad-title">작대 {{ squad.squad_num }}</div>
+      <div class="squad-title">작대 {{ squad.squad_num }} · {{ squad.members|length }}명</div>
       <ul class="member-list">
         {% for member in squad.members %}
-        <li class="member">{{ member }}</li>
+        <li class="member">
+          <span class="member-name">{{ member.name }}</span>
+          <span class="member-group {% if member.is_sit_out %}sit-out{% endif %}">
+            {% if member.is_sit_out %}좌불{% else %}{{ member.group }}{% endif %}
+          </span>
+        </li>
         {% endfor %}
       </ul>
     </div>

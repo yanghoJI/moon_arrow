@@ -73,8 +73,8 @@ def _diff(old_cache: dict) -> tuple:
         notice_changes.append({"type": "removed", "msg": f"- ({time}) {preview}"})
 
     # 작대 비교
-    old_squads = {s["squad_num"]: set(s["members"]) for s in old_cache["squads"]}
-    new_squads = {s["squad_num"]: set(s["members"]) for s in cache["squads"]}
+    old_squads = {s["squad_num"]: _squad_member_names(s) for s in old_cache["squads"]}
+    new_squads = {s["squad_num"]: _squad_member_names(s) for s in cache["squads"]}
     for squad_num in sorted(set(old_squads) | set(new_squads), key=lambda k: int(k) if k.isdigit() else 0):
         added = new_squads.get(squad_num, set()) - old_squads.get(squad_num, set())
         removed = old_squads.get(squad_num, set()) - new_squads.get(squad_num, set())
@@ -84,6 +84,16 @@ def _diff(old_cache: dict) -> tuple:
             squad_changes.append({"type": "removed", "msg": f"- 작대 {squad_num}: {m}"})
 
     return rank_changes, notice_changes, squad_changes
+
+
+def _squad_member_names(squad: dict) -> set:
+    names = set()
+    for member in squad["members"]:
+        if isinstance(member, dict):
+            names.add(member["name"])
+        else:
+            names.add(member)
+    return names
 
 
 @app.get("/api/refresh")

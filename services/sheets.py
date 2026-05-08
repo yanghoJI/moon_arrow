@@ -58,9 +58,15 @@ class NoticeItem(TypedDict):
     body: str
 
 
+class SquadMember(TypedDict):
+    name: str
+    group: str
+    is_sit_out: bool
+
+
 class SquadItem(TypedDict):
     squad_num: str
-    members: list
+    members: list[SquadMember]
 
 
 def _safe_int(value: str) -> int:
@@ -198,7 +204,12 @@ def _parse_squads(rows: list) -> list:
         squad_num = row.get("작대", "")
         name = row.get("이름", "")
         if squad_num and name:
-            squads.setdefault(squad_num, []).append(name)
+            group = row.get("그룹", "")
+            squads.setdefault(squad_num, []).append(SquadMember(
+                name=name,
+                group=group,
+                is_sit_out=group == "-",
+            ))
 
     sorted_keys = sorted(squads, key=lambda k: int(k) if k.isdigit() else 0)
     return [SquadItem(squad_num=k, members=squads[k]) for k in sorted_keys]
