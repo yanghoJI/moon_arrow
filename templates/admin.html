@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}운영자 페이지{% endblock %}
+
+{% block content %}
+  <h1>운영자 페이지</h1>
+  <div class="updated">
+    {% if last_updated %}마지막 갱신: {{ last_updated }}{% else %}데이터 없음{% endif %}
+  </div>
+  <div class="page-actions">
+    <a class="btn" href="/">홈으로</a>
+  </div>
+
+  <div class="admin-grid">
+    <div class="admin-stat">
+      <div class="admin-label">참가자</div>
+      <div class="admin-value">{{ participant_count }}명</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">팀 배정 대상</div>
+      <div class="admin-value">{{ eligible_count }}명</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">좌불</div>
+      <div class="admin-value">{{ sit_out_count }}명</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">공지</div>
+      <div class="admin-value">{{ notice_count }}개</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">작대</div>
+      <div class="admin-value">{{ squad_count }}개</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">현재 팀</div>
+      <div class="admin-value">
+        {% if team_count %}{{ team_count }}팀 · {{ team_diff }}점 차이{% else %}없음{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-actions">
+    <div class="admin-panel">
+      <h2>데이터 갱신</h2>
+      <a class="btn" href="/api/refresh">데이터 갱신</a>
+    </div>
+
+    <div class="admin-panel">
+      <h2>팀 배정</h2>
+      <form class="admin-form" method="get" action="/api/team">
+        <label for="team-count">팀 수</label>
+        <input id="team-count" name="n" type="number" min="2" max="{{ eligible_count or 2 }}" value="{{ team_count or 4 }}">
+        <button class="btn" type="submit">팀 생성</button>
+      </form>
+      <a class="btn" href="/api/team/clear">팀 초기화</a>
+    </div>
+  </div>
+
+  <div class="page-actions bottom">
+    <a class="btn" href="/">홈으로</a>
+  </div>
+{% endblock %}

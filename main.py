@@ -122,6 +122,23 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.get("/admin", response_class=HTMLResponse)
+async def admin(request: Request):
+    eligible_count = len(sheets.eligible_team_players(cache["rankings"]))
+    sit_out_count = len([item for item in cache["rankings"] if item.get("is_sit_out")])
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "participant_count": len(cache["rankings"]),
+        "eligible_count": eligible_count,
+        "sit_out_count": sit_out_count,
+        "notice_count": len(cache["notices"]),
+        "squad_count": len(cache["squads"]),
+        "team_count": cache["num_teams"],
+        "team_diff": cache["team_diff"],
+        "last_updated": cache["last_updated"],
+    })
+
+
 @app.get("/rank", response_class=HTMLResponse)
 async def rank(request: Request, group: Optional[str] = None):
     groups = sheets.available_groups(cache["rankings"])
