@@ -355,6 +355,26 @@ tr:nth-child(even) td {
   font-weight: 700;
 }
 
+.warning-box {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #fff8e5;
+  border: 1px solid #eac54f;
+  border-radius: 8px;
+  color: #7d4e00;
+}
+
+.warning-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.warning-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
 .section {
   margin-bottom: 16px;
 }

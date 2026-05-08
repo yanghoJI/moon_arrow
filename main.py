@@ -162,11 +162,14 @@ async def index(request: Request):
 async def admin(request: Request):
     eligible_count = len(sheets.eligible_team_players(cache["rankings"]))
     sit_out_count = len([item for item in cache["rankings"] if item.get("is_sit_out")])
+    duplicate_participants = sheets.duplicate_participants(cache["rankings"])
     return templates.TemplateResponse("admin.html", {
         "request": request,
         "participant_count": len(cache["rankings"]),
         "eligible_count": eligible_count,
         "sit_out_count": sit_out_count,
+        "duplicate_count": len(duplicate_participants),
+        "duplicate_participants": duplicate_participants,
         "notice_count": len(cache["notices"]),
         "squad_count": len(cache["squads"]),
         "team_count": cache["num_teams"],

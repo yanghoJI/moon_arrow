@@ -185,6 +185,24 @@ def eligible_team_players(rankings: list) -> list:
     return [player for player in rankings if not player.get("is_sit_out")]
 
 
+def duplicate_participants(rankings: list) -> list:
+    grouped = {}
+    for item in rankings:
+        name = item.get("name", "").strip()
+        if not name:
+            continue
+        grouped.setdefault(name, []).append(item)
+    duplicates = []
+    for name, items in grouped.items():
+        if len(items) > 1:
+            duplicates.append({
+                "name": name,
+                "count": len(items),
+                "groups": sorted({item.get("group", "") or "-" for item in items}),
+            })
+    return sorted(duplicates, key=lambda item: item["name"])
+
+
 def _parse_squads(rows: list) -> list:
     if not rows:
         return []

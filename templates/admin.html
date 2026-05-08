@@ -17,6 +17,16 @@
   {% if sheet_saved %}
   <div class="success-box">구글 시트 주소를 저장하고 데이터를 갱신했습니다.</div>
   {% endif %}
+  {% if duplicate_participants %}
+  <div class="warning-box">
+    <div class="warning-title">중복 참가자 {{ duplicate_count }}건</div>
+    <ul class="warning-list">
+      {% for item in duplicate_participants %}
+      <li>{{ item.name }} · {{ item.count }}회 · {{ item.groups | join(", ") }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
   <div class="page-actions">
     <a class="btn" href="/admin">홈으로</a>
   </div>
@@ -33,6 +43,10 @@
     <div class="admin-stat">
       <div class="admin-label">좌불</div>
       <div class="admin-value">{{ sit_out_count }}명</div>
+    </div>
+    <div class="admin-stat">
+      <div class="admin-label">중복</div>
+      <div class="admin-value">{{ duplicate_count }}건</div>
     </div>
     <div class="admin-stat">
       <div class="admin-label">공지</div>
