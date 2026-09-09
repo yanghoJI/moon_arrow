@@ -100,6 +100,15 @@ tr:nth-child(even) td {
   text-align: left;
 }
 
+.round-not-shot {
+  color: #999;
+}
+
+.round-zero {
+  color: #c45;
+  font-weight: 600;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

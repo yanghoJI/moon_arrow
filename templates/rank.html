@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 
+{% macro round_display(value) -%}
+  {%- if value == "-" -%}
+    <span class="round-not-shot">-</span>
+  {%- elif value == "0" -%}
+    <span class="round-zero">0</span>
+  {%- else -%}
+    {{ value }}
+  {%- endif -%}
+{%- endmacro %}
+
 {% block title %}대회 현재 등수{% endblock %}
 
 {% block content %}
@@ -28,7 +38,7 @@
         <th>덤</th>
         <th>합시</th>
         <th>총합</th>
-        <th>1·2·3순 합</th>
+        <th>1·2·3순</th>
       </tr>
     </thead>
     <tbody>
@@ -40,7 +50,7 @@
         <td>{{ item.dum }}</td>
         <td>{{ item.hap_si }}</td>
         <td>{{ item.total }}</td>
-        <td>{{ item.first_round_sum }} / {{ item.second_round_sum }} / {{ item.third_round_sum }}</td>
+        <td>{{ round_display(item.first_round_display) }} / {{ round_display(item.second_round_display) }} / {{ round_display(item.third_round_display) }}</td>
       </tr>
       {% endfor %}
     </tbody>

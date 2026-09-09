@@ -44,6 +44,12 @@ python3 -m pip install -r requirements.txt
 python3 main.py
 ```
 
+Mac에서 장시간 실행할 때는 잠자기로 인해 자동 갱신이 멈추지 않도록 아래 명령을 권장합니다.
+
+```bash
+caffeinate -i python3 main.py
+```
+
 서버는 기본적으로 `10555` 포트에서 실행됩니다.
 
 ```text
@@ -85,7 +91,7 @@ curl http://127.0.0.1:10555/api/refresh
 | URL | 설명 |
 |-----|------|
 | `/` | 메인 안내 페이지 |
-| `/rank` | 현재 등수 (총합 → 라운드 합 → 시간별 점수 순 정렬) |
+| `/rank` | 현재 등수 (미시도 `-`, 0중 `0`, 총합 → 라운드 → 시수 순 정렬) |
 | `/board` | 공지 / 상황판 |
 | `/squad` | 작대별 구성원 |
 | `/team` | 단체팀 구성 결과 |
