@@ -97,10 +97,10 @@ def _row_to_dict(headers: list, cols: list) -> dict:
 
 def _round_values(row: dict, headers: tuple[str, ...]) -> tuple[list[int], str]:
     values = [row.get(header, "").strip() for header in headers]
+
     if all(value == "" for value in values):
         return [0 for _ in headers], "-"
-    if any(value == "0" for value in values):
-        return [_safe_int(value) for value in values], "0"
+
     shots = [_safe_int(value) for value in values]
     return shots, str(sum(shots))
 
